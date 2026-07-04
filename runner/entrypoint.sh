@@ -176,4 +176,3 @@ log "Starting runner listener."
 runuser -u runner -- "${RUNNER_HOME}/run.sh" &
 runner_pid="$!"
 wait "${runner_pid}"
-

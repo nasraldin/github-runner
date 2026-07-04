@@ -20,4 +20,3 @@ docker compose --env-file "${ENV_FILE}" -f "${GENERATED_FILE}" build
 
 # shellcheck disable=SC2086
 docker compose --env-file "${ENV_FILE}" -f "${GENERATED_FILE}" up -d ${scale_args}
-

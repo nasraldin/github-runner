@@ -145,4 +145,3 @@ if (Test-Path (Join-Path \$RunnerDir 'runner.err.log')) {
   Get-Content (Join-Path \$RunnerDir 'runner.err.log') -Tail 160
 }"
 exit 1
-

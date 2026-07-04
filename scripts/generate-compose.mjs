@@ -12,7 +12,7 @@ const args = new Set(process.argv.slice(2));
 
 if (!existsSync(configPath)) {
   console.error(
-    `[generate-compose] ERROR: Missing ${configFile}. Copy runners.config.example.json to runners.config.json or set CONFIG_FILE.`
+    `[generate-compose] ERROR: Missing ${configFile}. Copy runners.config.example.json to runners.config.json or set CONFIG_FILE.`,
   );
   process.exit(1);
 }
@@ -51,7 +51,9 @@ for (const project of config.projects ?? []) {
   for (const pool of project.pools ?? []) {
     const runnerPackage = config.runnerPackages?.[pool.runnerPackage];
     if (!runnerPackage) {
-      fail(`Pool ${project.id}/${pool.id} references missing runnerPackage ${pool.runnerPackage}`);
+      fail(
+        `Pool ${project.id}/${pool.id} references missing runnerPackage ${pool.runnerPackage}`,
+      );
     }
 
     if (!pool.enabled) {
@@ -60,7 +62,12 @@ for (const project of config.projects ?? []) {
     }
 
     if (pool.runtime !== "docker") {
-      skippedPools.push({ project, pool, runnerPackage, reason: `runtime is ${pool.runtime}` });
+      skippedPools.push({
+        project,
+        pool,
+        runnerPackage,
+        reason: `runtime is ${pool.runtime}`,
+      });
       continue;
     }
 
@@ -69,13 +76,16 @@ for (const project of config.projects ?? []) {
         project,
         pool,
         runnerPackage,
-        reason: "Docker generation currently supports Linux runner containers; use native/service scripts for this pool"
+        reason:
+          "Docker generation currently supports Linux runner containers; use native/service scripts for this pool",
       });
       continue;
     }
 
     if (!runnerPackage.sha256) {
-      fail(`Pool ${project.id}/${pool.id} requires sha256 for ${pool.runnerPackage}`);
+      fail(
+        `Pool ${project.id}/${pool.id} requires sha256 for ${pool.runnerPackage}`,
+      );
     }
 
     dockerPools.push({ project, pool, runnerPackage });
@@ -84,7 +94,10 @@ for (const project of config.projects ?? []) {
 
 if (args.has("--scale-args")) {
   const scaleArgs = dockerPools
-    .map(({ project, pool }) => `--scale ${serviceName(project.id, pool.id)}=${replicasFor(pool)}`)
+    .map(
+      ({ project, pool }) =>
+        `--scale ${serviceName(project.id, pool.id)}=${replicasFor(pool)}`,
+    )
     .join(" ");
   process.stdout.write(scaleArgs);
   process.exit(0);
@@ -93,17 +106,17 @@ if (args.has("--scale-args")) {
 if (args.has("--list")) {
   for (const { project, pool, runnerPackage } of dockerPools) {
     console.log(
-      `${serviceName(project.id, pool.id)}: ${project.owner}/${project.repo} ${runnerPackage.os}/${runnerPackage.arch} replicas=${replicasFor(pool)}`
+      `${serviceName(project.id, pool.id)}: ${project.owner}/${project.repo} ${runnerPackage.os}/${runnerPackage.arch} replicas=${replicasFor(pool)}`,
     );
   }
   for (const { project, pool, runnerPackage, reason } of skippedPools) {
     console.log(
-      `skip ${project.id}/${pool.id}: ${runnerPackage.os}/${runnerPackage.arch} ${reason}`
+      `skip ${project.id}/${pool.id}: ${runnerPackage.os}/${runnerPackage.arch} ${reason}`,
     );
   }
   for (const { project, pool, runnerPackage } of disabledPools) {
     console.log(
-      `disabled ${project.id}/${pool.id}: ${runnerPackage.os}/${runnerPackage.arch} runtime=${pool.runtime} replicas=${replicasFor(pool)}`
+      `disabled ${project.id}/${pool.id}: ${runnerPackage.os}/${runnerPackage.arch} runtime=${pool.runtime} replicas=${replicasFor(pool)}`,
     );
   }
   process.exit(0);
@@ -114,7 +127,7 @@ const lines = [
   "# Do not edit directly.",
   "name: github-runner-manager",
   "",
-  "services:"
+  "services:",
 ];
 
 function append(...items) {
@@ -122,19 +135,20 @@ function append(...items) {
 }
 
 if (dockerPools.length === 0) {
-  append(
-    "  noop:",
-    "    image: alpine:3.20",
-    "    command: [\"true\"]"
-  );
+  append("  noop:", "    image: alpine:3.20", '    command: ["true"]');
 } else {
   for (const { project, pool, runnerPackage } of dockerPools) {
     const name = serviceName(project.id, pool.id);
     const volumeName = `${name}-toolcache`;
     const labels = (pool.labels ?? []).join(",");
-    const image = pool.image ?? `${project.owner}/${project.repo}-runner:${pool.id}`;
+    const image =
+      pool.image ?? `${project.owner}/${project.repo}-runner:${pool.id}`;
     const dockerfile = pool.dockerfile ?? "runner/Dockerfile";
-    const baseImage = pool.baseImage ?? runnerPackage.baseImage ?? config.defaults?.baseImage ?? "node:lts-bullseye";
+    const baseImage =
+      pool.baseImage ??
+      runnerPackage.baseImage ??
+      config.defaults?.baseImage ??
+      "node:lts-bullseye";
 
     append(
       `  ${name}:`,
@@ -169,7 +183,7 @@ if (dockerPools.length === 0) {
       `      - ${volumeName}:/opt/hostedtoolcache`,
       "    stop_grace_period: 120s",
       "    healthcheck:",
-      "      test: [\"CMD-SHELL\", \"test -f /home/runner/actions-runner/.runner\"]",
+      '      test: ["CMD-SHELL", "test -f /home/runner/actions-runner/.runner"]',
       "      interval: 30s",
       "      timeout: 5s",
       "      retries: 3",
@@ -177,8 +191,8 @@ if (dockerPools.length === 0) {
       "    logging:",
       "      driver: json-file",
       "      options:",
-      "        max-size: \"10m\"",
-      "        max-file: \"5\""
+      '        max-size: "10m"',
+      '        max-file: "5"',
     );
   }
 }
@@ -197,9 +211,8 @@ writeFileSync(outputPath, `${lines.join("\n")}\n`);
 
 for (const { project, pool, runnerPackage, reason } of skippedPools) {
   console.error(
-    `[generate-compose] skipped ${project.id}/${pool.id} (${runnerPackage.os}/${runnerPackage.arch}): ${reason}`
+    `[generate-compose] skipped ${project.id}/${pool.id} (${runnerPackage.os}/${runnerPackage.arch}): ${reason}`,
   );
 }
 
 console.log(`[generate-compose] wrote ${outputPath}`);
-

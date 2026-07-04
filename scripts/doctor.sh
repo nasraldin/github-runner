@@ -82,4 +82,3 @@ fi
 expires_at="$(jq -r '.expires_at' "${tmp_body}")"
 log "GitHub runner registration endpoint works. Test token expires at ${expires_at}."
 log "Ready to start runners for ${GITHUB_OWNER}/${GITHUB_REPO}."
-
