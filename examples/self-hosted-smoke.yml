@@ -1,0 +1,19 @@
+name: Self-hosted runner smoke test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, linux, x64, docker, project-id]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show runtime
+        run: |
+          node --version
+          npm --version
+          docker version
+          docker buildx version
+

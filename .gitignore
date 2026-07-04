@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+runners.config.json
+
+# Local runner/runtime data
+_work/
+runner-data/
+logs/
+compose.generated.yaml
+
+# OS/editor noise
+.DS_Store
+.idea/
+.vscode/

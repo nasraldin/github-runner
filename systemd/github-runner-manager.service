@@ -1,0 +1,19 @@
+[Unit]
+Description=GitHub self-hosted runner manager
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/github-runner-manager
+EnvironmentFile=/opt/github-runner-manager/.env
+RemainAfterExit=yes
+ExecStart=/usr/bin/make apply
+ExecStop=/usr/bin/make down-generated
+TimeoutStartSec=0
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,9 @@
+.env
+.env.*
+.git
+.gitignore
+runners.config.json
+compose.generated.yaml
+docs/
+systemd/
+README.md
