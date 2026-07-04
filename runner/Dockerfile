@@ -48,9 +48,7 @@ RUN set -eux; \
   docker-buildx-plugin \
   docker-ce-cli \
   docker-compose-plugin; \
-  rm -rf /var/lib/apt/lists/*
-
-RUN set -eux; \
+  rm -rf /var/lib/apt/lists/*; \
   useradd --create-home --shell /bin/bash runner; \
   echo "runner ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/runner; \
   chmod 0440 /etc/sudoers.d/runner; \
@@ -79,9 +77,10 @@ RUN set -eux; \
   tar xzf "${archive}"; \
   rm "${archive}"; \
   ./bin/installdependencies.sh; \
+  cp -a "${RUNNER_HOME}/externals" /opt/runner-externals-seed; \
   chown -R runner:runner "${RUNNER_HOME}"
 
-COPY runner/entrypoint.sh /usr/local/bin/github-runner-entrypoint
-RUN chmod +x /usr/local/bin/github-runner-entrypoint
+COPY --chmod=755 runner/docker-wrapper.sh /usr/local/bin/docker
+COPY --chmod=755 runner/entrypoint.sh /usr/local/bin/github-runner-entrypoint
 
 ENTRYPOINT ["/usr/local/bin/github-runner-entrypoint"]

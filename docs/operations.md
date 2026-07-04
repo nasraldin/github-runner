@@ -12,6 +12,8 @@ make init-workdir
 
 This creates `/home/runner/actions-runner/_work` with ownership for the `runner` user inside containers. See [Production Setup Guide](production-setup.md) for the full Linux VM layout.
 
+For a full list of Mac Docker Desktop issues and fixes, see [Self-Hosted Runner Issues and Solutions](self-hosted-runner-issues-and-solutions.md).
+
 Recommended baseline:
 
 - 4 CPU and 8 GB RAM per heavy runner.
@@ -148,6 +150,36 @@ make down
 
 The entrypoint requests a remove token and deregisters the runner during shutdown when `GITHUB_TOKEN` is available. If a server is killed abruptly, remove stale offline runners from GitHub settings.
 
+## 7b. Full Teardown (Clean Slate)
+
+Remove all runner containers, Compose volumes, built images, and the generated compose file:
+
+```bash
+make destroy
+```
+
+Also remove the host workspace (`runnerWorkHostPath` / `actions-runner` tree):
+
+```bash
+make destroy-all
+```
+
+`destroy` preserves `.env` and `runners.config.json`. After destroy, start fresh with:
+
+```bash
+make init-workdir   # if using host _work bind mounts
+make apply
+```
+
+Optional flags for `scripts/destroy.sh`:
+
+| Variable                 | Default | Effect                                                          |
+| ------------------------ | ------- | --------------------------------------------------------------- |
+| `DESTROY_WORKDIR`        | `0`     | Remove host `actions-runner` workspace (`destroy-all` sets `1`) |
+| `DESTROY_GENERATED`      | `1`     | Delete `compose.generated.yaml`                                 |
+| `DESTROY_IMAGES`         | `1`     | Remove runner images from config                                |
+| `DESTROY_GITHUB_OFFLINE` | `1`     | Delete offline runners from GitHub for configured repos         |
+
 ## 8. Rotate Token
 
 1. Create a new GitHub token.
@@ -218,6 +250,15 @@ runs-on: [self-hosted, linux, x64, docker, project-id]
 Service container or job container mount errors (`_work is not shared from the host`):
 
 - See [Production Setup Guide](production-setup.md) for the Linux VM layout and `_work` host bind mount.
+
+`pnpm install` is slow with `reused 0` but step succeeds:
+
+- See [Issue 12](self-hosted-runner-issues-and-solutions.md#issue-12-pnpm-install--noisy-logs-reused-0-native-gyp-output). Monorepo filtered installs are an app-side fix; run `make apply` for optional host `pnpm-store` mount.
+
+`checkout` fails with `could not read Username for 'https://github.com'`:
+
+- On macOS path-rewrite pools, run `make apply` so runners use `workspaces/<id>/_work` (no `_work` symlink). See [Issue 10](self-hosted-runner-issues-and-solutions.md#issue-10-checkoutv7--git-auth-fails-on-pr-fetch).
+- If it persists (fork PRs, restricted token defaults), add `permissions: contents: read` and/or `token: ${{ github.token }}` on the checkout step.
 
 Runner exits after a job:
 

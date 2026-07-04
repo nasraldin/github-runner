@@ -6,6 +6,8 @@
     "baseImage": "node:lts-bullseye",
     "runnerGroup": "Default",
     "runnerWorkdir": "_work",
+    "runnerWorkHostPath": "/home/runner/actions-runner/_work",
+    "runnerWorkContainerPath": "/home/runner/actions-runner/_work",
     "defaultReplicas": 3,
     "ephemeral": true,
     "replaceExisting": true,

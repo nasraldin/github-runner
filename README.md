@@ -87,6 +87,8 @@ Common commands:
 make ps-generated
 make restart-generated
 make stop
+make destroy
+make destroy-all
 ```
 
 You can override operational variables when needed:
@@ -95,6 +97,41 @@ You can override operational variables when needed:
 make logs-generated LOG_TAIL=500
 make apply ENV_FILE=.env.production
 make validate-example CONFIG_FILE=runners.config.example.json
+```
+
+### Teardown and fresh start
+
+| Command            | What it removes                                                                                    |
+| ------------------ | -------------------------------------------------------------------------------------------------- |
+| `make stop`        | Stops runner containers only (volumes and images remain)                                           |
+| `make destroy`     | Containers, Compose volumes, built runner images, `compose.generated.yaml`, offline GitHub runners |
+| `make destroy-all` | Everything in `make destroy` plus the host `actions-runner` workspace                              |
+
+`.env` and `runners.config.json` are always preserved.
+
+```bash
+make destroy-all
+make init-workdir    # if using host _work bind mounts
+make apply
+```
+
+Optional flags for `scripts/destroy.sh` (via `make destroy`):
+
+| Variable                 | Default | Effect                                                  |
+| ------------------------ | ------- | ------------------------------------------------------- |
+| `DESTROY_WORKDIR`        | `0`     | Remove host workspace (`destroy-all` sets `1`)          |
+| `DESTROY_GENERATED`      | `1`     | Delete `compose.generated.yaml`                         |
+| `DESTROY_IMAGES`         | `1`     | Remove runner images from config                        |
+| `DESTROY_GITHUB_OFFLINE` | `1`     | Delete offline runners from GitHub for configured repos |
+| `COMPOSE_TIMEOUT`        | `120`   | Seconds to wait for graceful container shutdown         |
+
+Examples:
+
+```bash
+make destroy
+DESTROY_GITHUB_OFFLINE=0 make destroy
+DESTROY_WORKDIR=1 make destroy
+COMPOSE_TIMEOUT=180 make destroy
 ```
 
 ## Recommended Flow
@@ -132,6 +169,8 @@ Stop generated pools:
 ```bash
 make stop
 ```
+
+For a full reset, see [Teardown and fresh start](#teardown-and-fresh-start) above (`make destroy` / `make destroy-all`).
 
 ## Scaling Running Pools
 
@@ -221,6 +260,7 @@ Docker runner pools mount `/var/run/docker.sock`, which is effectively root acce
 
 See:
 
+- [Self-Hosted Runner Issues and Solutions](docs/self-hosted-runner-issues-and-solutions.md)
 - [Production Setup Guide](docs/production-setup.md)
 - [Configuration Guide](docs/configuration.md)
 - [Operations Runbook](docs/operations.md)

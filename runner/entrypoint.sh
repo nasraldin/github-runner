@@ -19,6 +19,15 @@ log() {
   printf '[github-runner] %s\n' "$*"
 }
 
+# Bind-mounted host trees (workspaces, pnpm-store, toolcache) can contain huge CI
+# artifacts. Never chown -R through them — it blocks startup for minutes with no logs.
+chown_runner_top() {
+  local path="$1"
+  if [[ -e "${path}" ]]; then
+    chown runner:runner "${path}" 2>/dev/null || true
+  fi
+}
+
 fail() {
   printf '[github-runner] ERROR: %s\n' "$*" >&2
   exit 1
@@ -72,6 +81,59 @@ configure_docker_socket_access() {
   log "Added runner user to Docker socket group ${group_name} (${socket_gid})."
 }
 
+configure_per_instance_workdir() {
+  local actions_runner_host="${RUNNER_DOCKER_HOST_PATH_PREFIX:-}"
+  local actions_runner_container="${RUNNER_DOCKER_CONTAINER_PATH_PREFIX:-${RUNNER_HOME}}"
+
+  if [[ -z "${actions_runner_host}" || "${actions_runner_host}" == "${actions_runner_container}" ]]; then
+    mkdir -p "${RUNNER_HOME}/${RUNNER_WORKDIR}"
+    chown_runner_top "${RUNNER_HOME}/${RUNNER_WORKDIR}"
+    return
+  fi
+
+  local instance_id="${HOSTNAME}"
+  RUNNER_WORKDIR="workspaces/${instance_id}/_work"
+
+  mkdir -p "${RUNNER_HOME}/${RUNNER_WORKDIR}"
+  chown_runner_top "${RUNNER_HOME}/workspaces"
+  chown_runner_top "${RUNNER_HOME}/workspaces/${instance_id}"
+  chown_runner_top "${RUNNER_HOME}/${RUNNER_WORKDIR}"
+
+  local legacy_work_link="${RUNNER_HOME}/_work"
+  if [[ -L "${legacy_work_link}" ]]; then
+    rm -f "${legacy_work_link}"
+  fi
+
+  log "Per-instance workdir: ${RUNNER_HOME}/${RUNNER_WORKDIR}"
+}
+
+seed_externals_if_empty() {
+  local seed="/opt/runner-externals-seed"
+  if [[ ! -d "${seed}" ]]; then
+    return
+  fi
+
+  mkdir -p "${RUNNER_HOME}/externals"
+  if [[ -z "$(ls -A "${RUNNER_HOME}/externals" 2>/dev/null)" ]]; then
+    cp -a "${seed}/." "${RUNNER_HOME}/externals/"
+    log "Seeded ${RUNNER_HOME}/externals from image (host bind mount was empty)."
+  fi
+  chown_runner_top "${RUNNER_HOME}/externals"
+}
+
+ensure_docker_host_directories() {
+  mkdir -p "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}"
+  chown_runner_top "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}"
+
+  mkdir -p /home/runner/.local/share/pnpm/store
+  chown_runner_top /home/runner/.local/share/pnpm
+  chown_runner_top /home/runner/.local/share/pnpm/store
+
+  if [[ -n "${RUNNER_DOCKER_HOST_TOOLCACHE_PATH:-}" ]]; then
+    log "Hosted toolcache bind mount: ${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}"
+  fi
+}
+
 reset_existing_configuration() {
   if [[ ! -f "${RUNNER_HOME}/.runner" ]]; then
     return
@@ -123,8 +185,11 @@ github_token="${GITHUB_TOKEN:-}"
 unset GITHUB_TOKEN
 
 mkdir -p "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}"
-chown -R runner:runner "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}"
+chown_runner_top "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}"
 
+seed_externals_if_empty
+configure_per_instance_workdir
+ensure_docker_host_directories
 configure_docker_socket_access
 reset_existing_configuration
 

@@ -20,7 +20,7 @@ VM_NAME ?= Windows 11
 COMPOSE := docker compose --env-file $(ENV_FILE) -f $(COMPOSE_FILE)
 GENERATED_COMPOSE := docker compose --env-file $(ENV_FILE) -f $(GENERATED_FILE)
 
-.PHONY: help env config-init init-workdir require-env require-config doctor validate validate-example validate-generated config config-generated list-pools generate apply start build-generated up-generated down-generated stop restart-generated logs-generated ps-generated native-instructions test-windows-parallels build up down restart logs ps pull clean systemd-install systemd-enable systemd-start systemd-stop systemd-restart systemd-status systemd-logs
+.PHONY: help env config-init init-workdir ensure-host-dirs require-env require-config doctor validate validate-example validate-generated config config-generated list-pools generate apply start build-generated up-generated down-generated stop restart-generated logs-generated ps-generated native-instructions test-windows-parallels build up down restart logs ps pull clean destroy destroy-all systemd-install systemd-enable systemd-start systemd-stop systemd-restart systemd-status systemd-logs
 
 help:
 	@printf '%s\n' \
@@ -29,7 +29,7 @@ help:
 		'Common workflow:' \
 		'  make env                         Create .env from .env.example when missing' \
 		'  make config-init                 Create runners.config.json from example when missing' \
-		'  make init-workdir                Create /home/runner/actions-runner/_work (Linux prod; needs sudo)' \
+		'  make init-workdir                Create _work + hostedtoolcache dirs (macOS/Linux; needs sudo)' \
 		'  make validate                    Validate scripts and generated Docker Compose' \
 		'  make validate-example            Validate the public example config' \
 		'  make doctor                      Validate host tools and GitHub API access' \
@@ -37,6 +37,8 @@ help:
 		'  make apply                       Generate, build, and start enabled Docker pools' \
 		'  make logs-generated              Follow generated runner logs' \
 		'  make stop                        Stop generated Docker pools' \
+		'  make destroy                     Remove containers, volumes, images, generated compose' \
+		'  make destroy-all                 destroy + remove host _work workspace' \
 		'' \
 		'Generated multi-project stack:' \
 		'  make generate                    Write $(GENERATED_FILE) from $(CONFIG_FILE)' \
@@ -92,6 +94,9 @@ config-init:
 init-workdir:
 	@sudo scripts/init-runner-workdir.sh
 
+ensure-host-dirs: require-config
+	@CONFIG_FILE="$(CONFIG_FILE)" node scripts/ensure-host-dirs.mjs
+
 require-config:
 	@if [[ ! -f "$(CONFIG_FILE)" ]]; then \
 		printf '[config] ERROR: missing %s. Run `make config-init` or set CONFIG_FILE.\n' "$(CONFIG_FILE)" >&2; \
@@ -103,8 +108,9 @@ doctor: require-env
 
 validate: require-config generate
 	@node --check scripts/generate-compose.mjs
+	@node --check scripts/ensure-host-dirs.mjs
 	@node --check scripts/print-native-instructions.mjs
-	@bash -n scripts/apply.sh scripts/doctor.sh runner/entrypoint.sh scripts/test-windows-parallels.sh
+	@bash -n scripts/apply.sh scripts/doctor.sh scripts/destroy.sh runner/entrypoint.sh scripts/test-windows-parallels.sh
 	@if [[ -f "$(ENV_FILE)" ]]; then \
 		docker compose --env-file "$(ENV_FILE)" -f "$(GENERATED_FILE)" config --quiet; \
 	else \
@@ -128,7 +134,7 @@ list-pools: require-config
 generate: require-config
 	@CONFIG_FILE="$(CONFIG_FILE)" GENERATED_FILE="$(GENERATED_FILE)" node scripts/generate-compose.mjs
 
-apply: start
+apply: ensure-host-dirs start
 
 start: build-generated up-generated
 
@@ -193,6 +199,14 @@ pull: require-env
 clean: require-env
 	@$(COMPOSE) down --remove-orphans
 	@docker image rm "$${RUNNER_IMAGE:-github-runner-manager:local}" 2>/dev/null || true
+
+destroy: require-env
+	@chmod +x scripts/destroy.sh
+	@CONFIG_FILE="$(CONFIG_FILE)" ENV_FILE="$(ENV_FILE)" GENERATED_FILE="$(GENERATED_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)" ./scripts/destroy.sh
+
+destroy-all: require-env
+	@chmod +x scripts/destroy.sh
+	@DESTROY_WORKDIR=1 CONFIG_FILE="$(CONFIG_FILE)" ENV_FILE="$(ENV_FILE)" GENERATED_FILE="$(GENERATED_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)" ./scripts/destroy.sh
 
 systemd-install:
 	@sudo install -m 0644 systemd/github-runner-manager.service "/etc/systemd/system/$(SYSTEMD_UNIT)"
