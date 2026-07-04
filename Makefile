@@ -7,7 +7,7 @@ CONFIG_FILE ?= runners.config.json
 CONFIG_EXAMPLE ?= runners.config.example.json
 COMPOSE_FILE ?= compose.yaml
 GENERATED_FILE ?= compose.generated.yaml
-RUNNER_REPLICAS ?= 3
+SINGLE_POOL_REPLICAS ?= 3
 LOG_TAIL ?= 200
 SYSTEMD_UNIT ?= github-runner-manager.service
 PROJECT ?=
@@ -52,7 +52,7 @@ help:
 		'' \
 		'Single-pool compatibility stack:' \
 		'  make build                       Build compose.yaml runner image' \
-		'  make up                          Start compose.yaml runner replicas' \
+		'  make up                          Start compose.yaml runner replicas (advanced)' \
 		'  make down                        Stop compose.yaml runner stack' \
 		'  make logs                        Follow compose.yaml runner logs' \
 		'  make ps                          Show compose.yaml containers' \
@@ -64,7 +64,7 @@ help:
 		'  make systemd-status              Show manager service status' \
 		'' \
 		'Variables:' \
-		'  ENV_FILE=.env CONFIG_FILE=runners.config.json LOG_TAIL=200 RUNNER_REPLICAS=3'
+		'  ENV_FILE=.env CONFIG_FILE=runners.config.json LOG_TAIL=200 SINGLE_POOL_REPLICAS=3'
 
 env:
 	@if [[ -f "$(ENV_FILE)" ]]; then \
@@ -170,7 +170,7 @@ build: require-env
 	@$(COMPOSE) build
 
 up: require-env
-	@$(COMPOSE) up -d --scale runner=$${RUNNER_REPLICAS:-$(RUNNER_REPLICAS)}
+	@$(COMPOSE) up -d --scale runner=$(SINGLE_POOL_REPLICAS)
 
 down: require-env
 	@$(COMPOSE) down

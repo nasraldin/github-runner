@@ -117,29 +117,64 @@ Generate, build, and start all enabled Docker pools:
 make apply
 ```
 
+## Expected Running State
+
+After `make apply`, each enabled Linux Docker pool should create the configured number of runner containers. For example, a pool with `replicas: 3` should show three healthy containers:
+
+![Healthy Docker runner containers](docs/docker-containers.png)
+
+The same runners should also appear online in the repository's GitHub Actions runner settings:
+
+![Online GitHub self-hosted runners](docs/github-runners.png)
+
 Stop generated pools:
 
 ```bash
 make stop
 ```
 
-## Single-Pool Compatibility Mode
+## Scaling Running Pools
 
-`compose.yaml` is a generic single-pool template. It is useful for quick tests, but the recommended production path is a local `runners.config.json` plus `make apply`.
+Runner counts are configured in `runners.config.json`, not `.env`.
 
-For single-pool mode, set these in `.env`:
+To increase an already-running Linux pool from 3 to 5 runners:
 
-```bash
-GITHUB_OWNER=github-owner
-GITHUB_REPO=github-repo
-RUNNER_REPLICAS=3
+1. Edit the target pool in `runners.config.json`.
+2. Change `replicas`:
+
+```json
+"replicas": 5
 ```
 
-Then run:
+3. Re-apply the config:
 
 ```bash
-make build
-make up
+make apply
+```
+
+4. Confirm the containers:
+
+```bash
+make ps-generated
+```
+
+5. Confirm the runners in GitHub:
+
+```bash
+gh api repos/<owner>/<repo>/actions/runners \
+  --jq '.runners[] | [.name, .status, .busy] | @tsv'
+```
+
+`make apply` is idempotent: it regenerates Compose, builds if needed, and scales each enabled Docker pool to the replica count in JSON.
+
+## Single-Pool Compatibility Mode
+
+`compose.yaml` is kept as an advanced compatibility template for quick tests. Production and normal usage should use `runners.config.json` plus `make apply` so project, label, platform, and replica settings have one source of truth.
+
+If you use the compatibility template, pass the replica count as a Make variable:
+
+```bash
+make up SINGLE_POOL_REPLICAS=1
 ```
 
 ## Native macOS And Windows

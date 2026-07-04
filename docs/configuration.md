@@ -1,8 +1,8 @@
 # Configuration Guide
 
-`runners.config.json` is the local source of truth for reusable runner setup across projects and platforms.
+`runners.config.json` is the local source of truth for reusable runner setup across projects and platforms, including replica counts.
 
-Secrets stay in `.env`; repository and runner-pool metadata stays in JSON. The local config is ignored by Git. Use `runners.config.example.json` as the public template.
+Secrets and host-specific values stay in `.env`; repository metadata, labels, platforms, runner packages, and `replicas` stay in JSON. The local config is ignored by Git. Use `runners.config.example.json` as the public template.
 
 Create your local config:
 

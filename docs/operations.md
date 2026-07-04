@@ -87,24 +87,39 @@ Single-pool compatibility mode:
 
 ```bash
 make build
-make up
+make up SINGLE_POOL_REPLICAS=1
 make logs
 ```
 
 Confirm runners appear in the GitHub repository runner settings page for each configured repository.
 
-## 6. Scale Runners
+## 6. Scale Running Runners
 
-In `runners.config.json`, change `replicas` on the target pool:
+Runner counts live in `runners.config.json`. Do not scale production pools from `.env`.
+
+For example, to increase an already-running pool from 3 to 5 runners, edit the target pool:
 
 ```json
 "replicas": 5
 ```
 
-Apply again:
+Apply the config again:
 
 ```bash
 make apply
+```
+
+Check containers:
+
+```bash
+make ps-generated
+```
+
+Check GitHub:
+
+```bash
+gh api repos/<owner>/<repo>/actions/runners \
+  --jq '.runners[] | [.name, .status, .busy] | @tsv'
 ```
 
 One runner container equals one concurrent GitHub Actions job.
