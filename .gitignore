@@ -13,3 +13,4 @@ compose.generated.yaml
 .DS_Store
 .idea/
 .vscode/
+.history/

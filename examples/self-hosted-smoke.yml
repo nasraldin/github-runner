@@ -16,4 +16,3 @@ jobs:
           npm --version
           docker version
           docker buildx version
-
