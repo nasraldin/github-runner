@@ -218,7 +218,7 @@ Docker runner pools mount `/var/run/docker.sock`, which is effectively root acce
 
 See:
 
-- `docs/configuration.md`
-- `docs/operations.md`
-- `docs/production-validation.md`
-- `docs/security.md`
+- [Configuration Guide](docs/configuration.md)
+- [Operations Runbook](docs/operations.md)
+- [Production Validation Report](docs/production-validation.md)
+- [Security Runbook](docs/security.md)
