@@ -203,6 +203,8 @@ Each runner container handles one concurrent job. The default active pool uses `
 
 ## Production Install With Systemd
 
+For the full Linux VM architecture, `_work` bind mount, and step-by-step production guide, see [Production Setup Guide](docs/production-setup.md).
+
 Copy this project to `/opt/github-runner-manager`, create `/opt/github-runner-manager/.env` and `/opt/github-runner-manager/runners.config.json`, then:
 
 ```bash
@@ -218,6 +220,7 @@ Docker runner pools mount `/var/run/docker.sock`, which is effectively root acce
 
 See:
 
+- [Production Setup Guide](docs/production-setup.md)
 - [Configuration Guide](docs/configuration.md)
 - [Operations Runbook](docs/operations.md)
 - [Production Validation Report](docs/production-validation.md)

@@ -207,6 +207,10 @@ Jobs do not pick this runner:
 runs-on: [self-hosted, linux, x64, docker, project-id]
 ```
 
+Service container or job container mount errors (`_work is not shared from the host`):
+
+- See [Production Setup Guide](production-setup.md) for the Linux VM layout and `_work` host bind mount.
+
 Runner exits after a job:
 
 - This is expected when `RUNNER_EPHEMERAL=true`.
