@@ -20,7 +20,7 @@ VM_NAME ?= Windows 11
 COMPOSE := docker compose --env-file $(ENV_FILE) -f $(COMPOSE_FILE)
 GENERATED_COMPOSE := docker compose --env-file $(ENV_FILE) -f $(GENERATED_FILE)
 
-.PHONY: help env config-init require-env require-config doctor validate validate-example validate-generated config config-generated list-pools generate apply start build-generated up-generated down-generated stop restart-generated logs-generated ps-generated native-instructions test-windows-parallels build up down restart logs ps pull clean systemd-install systemd-enable systemd-start systemd-stop systemd-restart systemd-status systemd-logs
+.PHONY: help env config-init init-workdir require-env require-config doctor validate validate-example validate-generated config config-generated list-pools generate apply start build-generated up-generated down-generated stop restart-generated logs-generated ps-generated native-instructions test-windows-parallels build up down restart logs ps pull clean systemd-install systemd-enable systemd-start systemd-stop systemd-restart systemd-status systemd-logs
 
 help:
 	@printf '%s\n' \
@@ -29,6 +29,7 @@ help:
 		'Common workflow:' \
 		'  make env                         Create .env from .env.example when missing' \
 		'  make config-init                 Create runners.config.json from example when missing' \
+		'  make init-workdir                Create /home/runner/actions-runner/_work (Linux prod; needs sudo)' \
 		'  make validate                    Validate scripts and generated Docker Compose' \
 		'  make validate-example            Validate the public example config' \
 		'  make doctor                      Validate host tools and GitHub API access' \
@@ -87,6 +88,9 @@ config-init:
 		cp "$(CONFIG_EXAMPLE)" "$(CONFIG_FILE)"; \
 		printf '[config] created %s from %s. Edit owner, repo, labels, and enabled pools.\n' "$(CONFIG_FILE)" "$(CONFIG_EXAMPLE)"; \
 	fi
+
+init-workdir:
+	@sudo scripts/init-runner-workdir.sh
 
 require-config:
 	@if [[ ! -f "$(CONFIG_FILE)" ]]; then \

@@ -4,6 +4,14 @@
 
 Install Docker Engine and the Docker Compose v2 plugin on each Linux Docker runner host.
 
+On Linux production hosts, create the runner workspace directory before starting pools:
+
+```bash
+make init-workdir
+```
+
+This creates `/home/runner/actions-runner/_work` with ownership for the `runner` user inside containers. See [Production Setup Guide](production-setup.md) for the full Linux VM layout.
+
 Recommended baseline:
 
 - 4 CPU and 8 GB RAM per heavy runner.

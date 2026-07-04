@@ -208,6 +208,7 @@ For the full Linux VM architecture, `_work` bind mount, and step-by-step product
 Copy this project to `/opt/github-runner-manager`, create `/opt/github-runner-manager/.env` and `/opt/github-runner-manager/runners.config.json`, then:
 
 ```bash
+make init-workdir
 make systemd-install
 make systemd-enable
 make systemd-start

@@ -107,24 +107,7 @@ Note the Docker socket group ID (used later if needed):
 stat -c '%g %n' /var/run/docker.sock
 ```
 
-### 2. Create the workspace directory on the host
-
-GitHub Actions expects the runner work directory at:
-
-```text
-/home/runner/actions-runner/_work
-```
-
-Create it on the **Linux host** before starting runners:
-
-```bash
-sudo mkdir -p /home/runner/actions-runner/_work
-sudo chown -R 1000:1000 /home/runner/actions-runner/_work
-```
-
-The `runner` user inside the container typically has UID `1000`. Adjust ownership if your image uses a different UID.
-
-### 3. Install the runner manager
+### 2. Install the runner manager
 
 Clone this repository on the Linux host:
 
@@ -158,6 +141,40 @@ GITHUB_TOKEN=ghp_...   # PAT with repo admin access, or fine-grained with Admini
 ```
 
 Never commit `.env` or `runners.config.json`.
+
+### 3. Create the workspace directory on the host
+
+GitHub Actions expects the runner work directory at:
+
+```text
+/home/runner/actions-runner/_work
+```
+
+From the manager directory on the **Linux host**, run:
+
+```bash
+make init-workdir
+```
+
+This runs `scripts/init-runner-workdir.sh` with `sudo` and:
+
+- creates `/home/runner/actions-runner/_work`
+- sets ownership to UID/GID `1000` (the `runner` user inside the container)
+
+To use a different UID/GID:
+
+```bash
+sudo RUNNER_UID=1001 RUNNER_GID=1001 scripts/init-runner-workdir.sh
+```
+
+Manual equivalent:
+
+```bash
+sudo mkdir -p /home/runner/actions-runner/_work
+sudo chown -R 1000:1000 /home/runner/actions-runner/_work
+```
+
+> **macOS note:** `/home/runner` is not a normal path on macOS and requires `sudo`. Creating it on a Mac does **not** fix Docker Desktop `_work` mount errors for `container:` / `services:` jobs — use a Linux VM for those workflows.
 
 ### 4. Add the production `_work` bind mount
 
@@ -250,15 +267,16 @@ Each replica is one runner container and one concurrent job slot.
 
 ## Operations Quick Reference
 
-| Task                         | Command                  |
-| ---------------------------- | ------------------------ |
-| Start / update runners       | `make apply`             |
-| View containers              | `make ps-generated`      |
-| Follow logs                  | `make logs-generated`    |
-| Stop runners                 | `make stop`              |
-| Restart after token rotation | `make restart-generated` |
-| Validate config              | `make validate`          |
-| Check GitHub API + Docker    | `make doctor`            |
+| Task                          | Command                  |
+| ----------------------------- | ------------------------ |
+| Create host `_work` directory | `make init-workdir`      |
+| Start / update runners        | `make apply`             |
+| View containers               | `make ps-generated`      |
+| Follow logs                   | `make logs-generated`    |
+| Stop runners                  | `make stop`              |
+| Restart after token rotation  | `make restart-generated` |
+| Validate config               | `make validate`          |
+| Check GitHub API + Docker     | `make doctor`            |
 
 See [Operations Runbook](operations.md) for the full runbook.
 
@@ -267,7 +285,7 @@ See [Operations Runbook](operations.md) for the full runbook.
 ### `mounts denied` for `_work`
 
 - **On Mac:** expected for `container:` / `services:` jobs. Use a Linux VM for those workflows, or refactor workflows to start Postgres/Redis manually without GHA `services:`.
-- **On Linux:** ensure `/home/runner/actions-runner/_work` exists on the host and is bind-mounted into runner containers (step 4).
+- **On Linux:** run `make init-workdir`, then ensure `/home/runner/actions-runner/_work` is bind-mounted into runner containers (step 4).
 
 ### Docker commands fail inside jobs
 
